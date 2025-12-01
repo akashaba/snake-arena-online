@@ -1,0 +1,717 @@
+openapi: 3.0.3
+info:
+  title: Neon Snake Arena API
+  description: |
+    Backend API for the Neon Snake Arena Online game.
+    This API provides authentication, leaderboard management, and spectate functionality
+    for a multiplayer snake game with real-time features.
+  version: 1.0.0
+  contact:
+    name: Snake Arena Team
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+  - url: https://api.snake-arena.com/api/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Leaderboard
+    description: Game scores and rankings
+  - name: Spectate
+    description: Watch active players in real-time
+  - name: User
+    description: User profile management
+
+paths:
+  # Authentication Endpoints
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate a user with email and password
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: player@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: password123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  token:
+                    type: string
+                    description: JWT authentication token
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /auth/signup:
+    post:
+      tags:
+        - Authentication
+      summary: User registration
+      description: Create a new user account
+      operationId: signupUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+              properties:
+                username:
+                  type: string
+                  minLength: 3
+                  maxLength: 30
+                  pattern: '^[a-zA-Z0-9_-]+$'
+                  example: NeonMaster
+                email:
+                  type: string
+                  format: email
+                  example: player@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: password123
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  token:
+                    type: string
+                    description: JWT authentication token
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      description: Invalidate the current user session
+      operationId: logoutUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      description: Retrieve the currently authenticated user's information
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # Leaderboard Endpoints
+  /leaderboard:
+    get:
+      tags:
+        - Leaderboard
+      summary: Get full leaderboard
+      description: Retrieve all leaderboard entries sorted by score
+      operationId: getLeaderboard
+      parameters:
+        - name: mode
+          in: query
+          description: Filter by game mode
+          required: false
+          schema:
+            type: string
+            enum:
+              - walls
+              - pass-through
+        - name: limit
+          in: query
+          description: Maximum number of entries to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of entries to skip (for pagination)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LeaderboardEntry'
+                  total:
+                    type: integer
+                    description: Total number of entries
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  /leaderboard/top:
+    get:
+      tags:
+        - Leaderboard
+      summary: Get top scores
+      description: Retrieve the top N scores from the leaderboard
+      operationId: getTopScores
+      parameters:
+        - name: limit
+          in: query
+          description: Number of top scores to return
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: mode
+          in: query
+          description: Filter by game mode
+          required: false
+          schema:
+            type: string
+            enum:
+              - walls
+              - pass-through
+      responses:
+        '200':
+          description: Top leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LeaderboardEntry'
+
+  /leaderboard/scores:
+    post:
+      tags:
+        - Leaderboard
+      summary: Submit a score
+      description: Submit a new score to the leaderboard (requires authentication)
+      operationId: submitScore
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - score
+                - mode
+              properties:
+                score:
+                  type: integer
+                  minimum: 0
+                  example: 850
+                mode:
+                  type: string
+                  enum:
+                    - walls
+                    - pass-through
+                  example: walls
+      responses:
+        '201':
+          description: Score submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardEntry'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /leaderboard/user/{userId}:
+    get:
+      tags:
+        - Leaderboard
+      summary: Get user scores
+      description: Retrieve all scores for a specific user
+      operationId: getUserScores
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: string
+        - name: mode
+          in: query
+          description: Filter by game mode
+          required: false
+          schema:
+            type: string
+            enum:
+              - walls
+              - pass-through
+      responses:
+        '200':
+          description: User's leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LeaderboardEntry'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Spectate Endpoints
+  /spectate/players:
+    get:
+      tags:
+        - Spectate
+      summary: Get active players
+      description: Retrieve all currently active players in the game
+      operationId: getActivePlayers
+      parameters:
+        - name: mode
+          in: query
+          description: Filter by game mode
+          required: false
+          schema:
+            type: string
+            enum:
+              - walls
+              - pass-through
+      responses:
+        '200':
+          description: List of active players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ActivePlayer'
+
+  /spectate/players/{playerId}:
+    get:
+      tags:
+        - Spectate
+      summary: Watch a specific player
+      description: Get detailed game state for a specific active player
+      operationId: watchPlayer
+      parameters:
+        - name: playerId
+          in: path
+          required: true
+          description: Player ID to watch
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Player game state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivePlayer'
+        '404':
+          description: Player not found or not currently playing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # User Profile Endpoints
+  /users/{userId}:
+    get:
+      tags:
+        - User
+      summary: Get user profile
+      description: Retrieve public profile information for a user
+      operationId: getUserProfile
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/{userId}/stats:
+    get:
+      tags:
+        - User
+      summary: Get user statistics
+      description: Retrieve gameplay statistics for a user
+      operationId: getUserStats
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStats'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login or signup
+
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+        - username
+        - email
+      properties:
+        id:
+          type: string
+          example: abc123def456
+        username:
+          type: string
+          example: NeonMaster
+        email:
+          type: string
+          format: email
+          example: player@example.com
+        createdAt:
+          type: string
+          format: date-time
+          example: '2023-12-01T10:30:00Z'
+
+    UserProfile:
+      type: object
+      required:
+        - id
+        - username
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        totalGames:
+          type: integer
+          example: 150
+        highestScore:
+          type: integer
+          example: 850
+        favoriteMode:
+          type: string
+          enum:
+            - walls
+            - pass-through
+
+    UserStats:
+      type: object
+      properties:
+        totalGames:
+          type: integer
+          example: 150
+        totalScore:
+          type: integer
+          example: 12500
+        averageScore:
+          type: number
+          format: float
+          example: 83.33
+        highestScore:
+          type: integer
+          example: 850
+        wallModeGames:
+          type: integer
+          example: 90
+        passThroughModeGames:
+          type: integer
+          example: 60
+        bestWallScore:
+          type: integer
+          example: 850
+        bestPassThroughScore:
+          type: integer
+          example: 720
+        rank:
+          type: integer
+          description: Current rank on leaderboard
+          example: 5
+
+    LeaderboardEntry:
+      type: object
+      required:
+        - id
+        - userId
+        - username
+        - score
+        - mode
+        - timestamp
+      properties:
+        id:
+          type: string
+          example: entry123
+        userId:
+          type: string
+          example: abc123def456
+        username:
+          type: string
+          example: NeonMaster
+        score:
+          type: integer
+          minimum: 0
+          example: 850
+        mode:
+          type: string
+          enum:
+            - walls
+            - pass-through
+          example: walls
+        timestamp:
+          type: string
+          format: date-time
+          example: '2023-12-01T14:30:00Z'
+
+    Position:
+      type: object
+      required:
+        - x
+        - y
+      properties:
+        x:
+          type: integer
+          minimum: 0
+          maximum: 19
+          example: 10
+        y:
+          type: integer
+          minimum: 0
+          maximum: 19
+          example: 5
+
+    ActivePlayer:
+      type: object
+      required:
+        - id
+        - username
+        - score
+        - mode
+        - snake
+        - food
+        - isGameOver
+      properties:
+        id:
+          type: string
+          example: player123
+        username:
+          type: string
+          example: NeonMaster
+        score:
+          type: integer
+          minimum: 0
+          example: 230
+        mode:
+          type: string
+          enum:
+            - walls
+            - pass-through
+          example: walls
+        snake:
+          type: array
+          items:
+            $ref: '#/components/schemas/Position'
+          description: Array of positions representing the snake (head is first element)
+          example:
+            - { x: 10, y: 10 }
+            - { x: 9, y: 10 }
+            - { x: 8, y: 10 }
+        food:
+          $ref: '#/components/schemas/Position'
+        isGameOver:
+          type: boolean
+          example: false
+        direction:
+          type: string
+          enum:
+            - UP
+            - DOWN
+            - LEFT
+            - RIGHT
+          example: RIGHT
+        startedAt:
+          type: string
+          format: date-time
+          example: '2023-12-01T15:00:00Z'
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          example: InvalidCredentials
+        message:
+          type: string
+          example: Invalid email or password
+        code:
+          type: integer
+          example: 401
+
+    ValidationError:
+      type: object
+      required:
+        - error
+        - message
+        - details
+      properties:
+        error:
+          type: string
+          example: ValidationError
+        message:
+          type: string
+          example: Request validation failed
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: email
+              message:
+                type: string
+                example: Invalid email format
+
+  responses:
+    UnauthorizedError:
+      description: Authentication required or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Unauthorized
+            message: Authentication required
+            code: 401
