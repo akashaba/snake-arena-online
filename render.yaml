@@ -1,13 +1,11 @@
-services:
+databases:
   # PostgreSQL Database
-  - type: pserv
-    name: snake-arena-db
-    env: docker
+  - name: snake-arena-db
+    databaseName: snake_arena
+    user: postgres
     plan: free
-    databases:
-      - name: snake_arena
-        user: postgres
 
+services:
   # Combined Web Service (Frontend + Backend)
   - type: web
     name: snake-arena-app
