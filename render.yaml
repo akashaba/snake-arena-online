@@ -2,7 +2,6 @@ databases:
   # PostgreSQL Database
   - name: snake-arena-db
     databaseName: snake_arena
-    user: postgres
     plan: free
 
 services:
