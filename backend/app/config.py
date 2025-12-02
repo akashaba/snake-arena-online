@@ -25,6 +25,29 @@ class Settings(BaseSettings):
         "http://127.0.0.1:8080",
     ]
     
+    # Database
+    database_url: str = "sqlite+aiosqlite:///./snake_arena.db"
+    database_echo: bool = False  # Set to True to log SQL queries
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
+    db_pool_timeout: int = 30
+    db_pool_recycle: int = 3600
+    
+    @property
+    def is_sqlite(self) -> bool:
+        """Check if using SQLite database"""
+        return self.database_url.startswith("sqlite")
+    
+    @property
+    def async_database_url(self) -> str:
+        """Get async database URL"""
+        # Ensure async drivers are used
+        if "postgresql" in self.database_url and "asyncpg" not in self.database_url:
+            return self.database_url.replace("postgresql://", "postgresql+asyncpg://")
+        if "sqlite" in self.database_url and "aiosqlite" not in self.database_url:
+            return self.database_url.replace("sqlite://", "sqlite+aiosqlite://")
+        return self.database_url
+    
     class Config:
         env_file = ".env"
 

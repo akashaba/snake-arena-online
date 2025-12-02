@@ -1,8 +1,12 @@
 """Spectate router"""
 from typing import Literal
-from fastapi import APIRouter, Query, HTTPException, status
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app import crud
+from app.database import get_db
 from app.schemas import ActivePlayer, ErrorResponse
-from app.database import db
 
 router = APIRouter(prefix="/spectate", tags=["Spectate"])
 
@@ -13,9 +17,10 @@ router = APIRouter(prefix="/spectate", tags=["Spectate"])
 )
 async def get_active_players(
     mode: Literal["walls", "pass-through"] | None = Query(None, description="Filter by game mode"),
+    db: AsyncSession = Depends(get_db),
 ):
     """Get all currently active players"""
-    players = db.get_active_players(mode=mode)
+    players = await crud.active_players.get_active_players(db, mode=mode)
     
     return [
         ActivePlayer(
@@ -40,9 +45,9 @@ async def get_active_players(
         404: {"model": ErrorResponse, "description": "Player not found or not currently playing"},
     }
 )
-async def watch_player(player_id: str):
+async def watch_player(player_id: str, db: AsyncSession = Depends(get_db)):
     """Get detailed game state for a specific active player"""
-    player = db.get_active_player(player_id)
+    player = await crud.active_players.get_active_player(db, player_id)
     
     if not player:
         raise HTTPException(

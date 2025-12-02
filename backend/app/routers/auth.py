@@ -1,25 +1,28 @@
 """Authentication router"""
 import uuid
-from datetime import datetime
-from fastapi import APIRouter, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials
+from datetime import datetime, timedelta, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app import crud
+from app.config import settings
+from app.database import get_db
 from app.schemas import (
+    ErrorResponse,
     LoginRequest,
     SignupRequest,
     TokenResponse,
     User,
-    ErrorResponse,
 )
-from app.models import UserInDB
-from app.database import db
 from app.utils import (
-    verify_password,
-    get_password_hash,
-    create_access_token,
     CurrentUser,
+    create_access_token,
+    decode_access_token,
+    get_password_hash,
+    verify_password,
 )
-from fastapi import Depends
-from fastapi.security import HTTPBearer
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 security = HTTPBearer()
@@ -32,10 +35,10 @@ security = HTTPBearer()
         401: {"model": ErrorResponse, "description": "Invalid credentials"},
     }
 )
-async def login(request: LoginRequest):
+async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
     """Authenticate a user with email and password"""
     # Get user by email
-    user_in_db = db.get_user_by_email(request.email)
+    user_in_db = await crud.users.get_user_by_email(db, request.email)
     
     if not user_in_db or not verify_password(request.password, user_in_db.hashed_password):
         raise HTTPException(
@@ -64,10 +67,10 @@ async def login(request: LoginRequest):
         409: {"model": ErrorResponse, "description": "User already exists"},
     }
 )
-async def signup(request: SignupRequest):
+async def signup(request: SignupRequest, db: AsyncSession = Depends(get_db)):
     """Create a new user account"""
     # Check if user already exists
-    existing_user = db.get_user_by_email(request.email)
+    existing_user = await crud.users.get_user_by_email(db, request.email)
     
     if existing_user:
         raise HTTPException(
@@ -79,15 +82,13 @@ async def signup(request: SignupRequest):
     user_id = str(uuid.uuid4())
     hashed_password = get_password_hash(request.password)
     
-    new_user = UserInDB(
-        id=user_id,
+    new_user = await crud.users.create_user(
+        db,
+        user_id=user_id,
         username=request.username,
         email=request.email,
         hashed_password=hashed_password,
-        created_at=datetime.utcnow()
     )
-    
-    db.create_user(new_user)
     
     # Create access token
     access_token = create_access_token(data={"sub": user_id})
@@ -109,12 +110,32 @@ async def signup(request: SignupRequest):
         401: {"model": ErrorResponse, "description": "Unauthorized"},
     }
 )
-async def logout(credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def logout(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: AsyncSession = Depends(get_db),
+):
     """Invalidate the current user session"""
     token = credentials.credentials
     
+    # Decode token to get expiration
+    payload = decode_access_token(token)
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )
+    
+    exp_timestamp = payload.get("exp")
+    if exp_timestamp:
+        expires_at = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+    else:
+        # Default to token expiration time from settings
+        expires_at = datetime.now(timezone.utc) + timedelta(
+            minutes=settings.access_token_expire_minutes
+        )
+    
     # Add token to blacklist
-    db.blacklist_token(token)
+    await crud.token_blacklist.blacklist_token(db, token, expires_at)
     
     return {"message": "Logged out successfully"}
 

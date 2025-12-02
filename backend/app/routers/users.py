@@ -1,7 +1,10 @@
 """User profile router"""
-from fastapi import APIRouter, HTTPException, status
-from app.schemas import UserProfile, UserStats, ErrorResponse
-from app.database import db
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app import crud
+from app.database import get_db
+from app.schemas import ErrorResponse, UserProfile, UserStats
 
 router = APIRouter(prefix="/users", tags=["User"])
 
@@ -13,9 +16,9 @@ router = APIRouter(prefix="/users", tags=["User"])
         404: {"model": ErrorResponse, "description": "User not found"},
     }
 )
-async def get_user_profile(user_id: str):
+async def get_user_profile(user_id: str, db: AsyncSession = Depends(get_db)):
     """Get public profile information for a user"""
-    user = db.get_user_by_id(user_id)
+    user = await crud.users.get_user_by_id(db, user_id)
     
     if not user:
         raise HTTPException(
@@ -24,7 +27,7 @@ async def get_user_profile(user_id: str):
         )
     
     # Get user scores to calculate profile stats
-    scores = db.get_user_scores(user_id)
+    scores = await crud.leaderboard.get_user_scores(db, user_id)
     
     total_games = len(scores)
     highest_score = max((s.score for s in scores), default=0)
@@ -53,9 +56,9 @@ async def get_user_profile(user_id: str):
         404: {"model": ErrorResponse, "description": "User not found"},
     }
 )
-async def get_user_stats(user_id: str):
+async def get_user_stats(user_id: str, db: AsyncSession = Depends(get_db)):
     """Get detailed statistics for a user"""
-    user = db.get_user_by_id(user_id)
+    user = await crud.users.get_user_by_id(db, user_id)
     
     if not user:
         raise HTTPException(
@@ -64,7 +67,7 @@ async def get_user_stats(user_id: str):
         )
     
     # Get user scores
-    scores = db.get_user_scores(user_id)
+    scores = await crud.leaderboard.get_user_scores(db, user_id)
     
     total_games = len(scores)
     total_score = sum(s.score for s in scores)
@@ -81,7 +84,7 @@ async def get_user_stats(user_id: str):
     best_pass_through_score = max((s.score for s in pass_through_scores), default=0)
     
     # Calculate rank
-    all_entries, _ = db.get_leaderboard(limit=10000, offset=0)
+    all_entries, _ = await crud.leaderboard.get_leaderboard(db, limit=10000, offset=0)
     unique_users = {}
     for entry in all_entries:
         if entry.user_id not in unique_users or entry.score > unique_users[entry.user_id]:

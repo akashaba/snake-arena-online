@@ -1,13 +1,16 @@
 """Authentication utilities"""
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Annotated
+
 import bcrypt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app import crud
 from app.config import settings
-from app.database import db
-from app.models import UserInDB
+from app.database import get_db
 from app.schemas import User
 
 # Security scheme
@@ -37,14 +40,25 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     to_encode = data.copy()
     
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
+        expire = datetime.now(timezone.utc) + timedelta(
+            minutes=settings.access_token_expire_minutes
+        )
     
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     
     return encoded_jwt
+
+
+def decode_access_token(token: str) -> dict | None:
+    """Decode a JWT token without raising exceptions"""
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        return payload
+    except JWTError:
+        return None
 
 
 def decode_token(token: str) -> dict:
@@ -61,13 +75,15 @@ def decode_token(token: str) -> dict:
 
 
 async def get_current_user(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)]
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
+    db: AsyncSession = Depends(get_db),
 ) -> User:
     """Get the current authenticated user"""
     token = credentials.credentials
     
     # Check if token is blacklisted
-    if db.is_token_blacklisted(token):
+    is_blacklisted = await crud.token_blacklist.is_token_blacklisted(db, token)
+    if is_blacklisted:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",
@@ -86,7 +102,7 @@ async def get_current_user(
         )
     
     # Get user from database
-    user_in_db = db.get_user_by_id(user_id)
+    user_in_db = await crud.users.get_user_by_id(db, user_id)
     
     if user_in_db is None:
         raise HTTPException(
