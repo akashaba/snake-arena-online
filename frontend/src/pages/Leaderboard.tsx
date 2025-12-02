@@ -2,24 +2,37 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockLeaderboardAPI, type LeaderboardEntry } from "@/services/mockBackend";
+import { leaderboardAPI, type LeaderboardEntry } from "@/services/api";
 import { Trophy, ArrowLeft, Medal } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Leaderboard = () => {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     const loadLeaderboard = async () => {
       setIsLoading(true);
-      const data = await mockLeaderboardAPI.getTopScores(20);
-      setEntries(data);
-      setIsLoading(false);
+      try {
+        // Load all leaderboard entries (up to 100)
+        const data = await leaderboardAPI.getLeaderboard({ limit: 100 });
+        setEntries(data);
+      } catch (error) {
+        console.error('Failed to load leaderboard:', error);
+        toast({
+          title: "Failed to load leaderboard",
+          description: "Could not fetch leaderboard data. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadLeaderboard();
-  }, []);
+  }, [toast]);
 
   const getRankColor = (index: number) => {
     if (index === 0) return "text-neon-orange";

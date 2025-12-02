@@ -4,7 +4,7 @@ import { GameBoard } from "@/components/game/GameBoard";
 import { GameControls } from "@/components/game/GameControls";
 import { Button } from "@/components/ui/button";
 import { useGameLogic } from "@/hooks/useGameLogic";
-import { mockAuth, mockLeaderboardAPI, type User } from "@/services/mockBackend";
+import { authAPI, leaderboardAPI, type User } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { Trophy, Eye, LogOut, LogIn } from "lucide-react";
 
@@ -22,19 +22,27 @@ const Index = () => {
   } = useGameLogic("walls");
 
   useEffect(() => {
-    const currentUser = mockAuth.getCurrentUser();
+    const currentUser = authAPI.getCurrentUser();
     setUser(currentUser);
   }, []);
 
   useEffect(() => {
     // Submit score when game is over
     if (gameState.isGameOver && gameState.score > 0 && user) {
-      mockLeaderboardAPI.submitScore(gameState.score, gameState.mode);
+      leaderboardAPI.submitScore(gameState.score, gameState.mode)
+        .catch((error) => {
+          console.error('Failed to submit score:', error);
+          toast({
+            title: "Failed to submit score",
+            description: "Your score couldn't be saved to the leaderboard.",
+            variant: "destructive",
+          });
+        });
     }
-  }, [gameState.isGameOver, gameState.score, gameState.mode, user]);
+  }, [gameState.isGameOver, gameState.score, gameState.mode, user, toast]);
 
   const handleLogout = async () => {
-    await mockAuth.logout();
+    await authAPI.logout();
     setUser(null);
     toast({
       title: "Logged out",

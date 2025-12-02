@@ -124,7 +124,7 @@ uv run pytest --cov=app --cov-report=html
 
 ## Mock Users
 
-The mock database includes 8 test users (all with password `password123`):
+The mock database includes 20 test users (all with password `password123`):
 
 - neon@example.com (NeonMaster)
 - cyber@example.com (CyberSnake)
@@ -134,6 +134,20 @@ The mock database includes 8 test users (all with password `password123`):
 - tron@example.com (TronLegend)
 - arcade@example.com (ArcadeKing)
 - ninja@example.com (NeonNinja)
+- wizard@example.com (SnakeWizard)
+- byte@example.com (ByteEater)
+- warrior@example.com (PixelWarrior)
+- glow@example.com (GlowRunner)
+- phantom@example.com (NeonPhantom)
+- viper@example.com (CyberViper)
+- gridmaster@example.com (GridMaster)
+- king@example.com (SnakeKing)
+- racer@example.com (NeonRacer)
+- pixelninja@example.com (PixelNinja)
+- tronwar@example.com (TronWarrior)
+- hunter@example.com (CyberHunter)
+
+The leaderboard includes 30 entries with scores ranging from 420 to 1250 across both game modes.
 
 ## Configuration
 

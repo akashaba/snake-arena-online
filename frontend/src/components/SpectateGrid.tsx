@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { mockSpectateAPI, type ActivePlayer } from "@/services/mockBackend";
+import { spectateAPI, type ActivePlayer } from "@/services/api";
 import { GRID_SIZE_CONSTANT } from "@/lib/gameEngine";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -8,8 +8,12 @@ export const SpectateGrid = () => {
 
   useEffect(() => {
     const loadPlayers = async () => {
-      const data = await mockSpectateAPI.getActivePlayers();
-      setPlayers(data);
+      try {
+        const data = await spectateAPI.getActivePlayers();
+        setPlayers(data);
+      } catch (error) {
+        console.error('Failed to load active players:', error);
+      }
     };
 
     loadPlayers();

@@ -62,45 +62,14 @@ class MockDatabase:
             self.users[user_id] = user
             self.users_by_email[email] = user_id
         
-        # Create mock leaderboard entries - expanded with more variety
+        # Create mock leaderboard entries - minimal data for testing
         mock_leaderboard_data = [
-            # Top performers
-            ("user1", "NeonMaster", 1250, "walls"),
-            ("user16", "SnakeKing", 1180, "pass-through"),
-            ("user2", "CyberSnake", 1120, "walls"),
-            ("user15", "GridMaster", 1050, "pass-through"),
-            ("user3", "PixelHunter", 980, "walls"),
-            ("user14", "CyberViper", 920, "pass-through"),
-            ("user9", "SnakeWizard", 890, "walls"),
-            ("user17", "NeonRacer", 850, "pass-through"),
-            
-            # Mid-tier players
-            ("user4", "GridRunner", 780, "walls"),
-            ("user10", "ByteEater", 750, "pass-through"),
-            ("user5", "RetroGamer", 720, "walls"),
-            ("user18", "PixelNinja", 680, "pass-through"),
-            ("user6", "TronLegend", 650, "walls"),
-            ("user11", "PixelWarrior", 620, "pass-through"),
-            ("user7", "ArcadeKing", 590, "walls"),
-            ("user19", "TronWarrior", 560, "pass-through"),
-            
-            # Beginners
-            ("user8", "NeonNinja", 520, "walls"),
-            ("user12", "GlowRunner", 480, "pass-through"),
-            ("user13", "NeonPhantom", 450, "walls"),
-            ("user20", "CyberHunter", 420, "pass-through"),
-            
-            # Additional scores for variety (multiple scores per user)
-            ("user1", "NeonMaster", 1100, "pass-through"),
-            ("user2", "CyberSnake", 950, "pass-through"),
-            ("user3", "PixelHunter", 880, "pass-through"),
-            ("user16", "SnakeKing", 1000, "walls"),
-            ("user15", "GridMaster", 920, "walls"),
-            ("user9", "SnakeWizard", 810, "pass-through"),
-            ("user4", "GridRunner", 700, "pass-through"),
-            ("user10", "ByteEater", 650, "walls"),
-            ("user5", "RetroGamer", 620, "pass-through"),
-            ("user17", "NeonRacer", 780, "walls"),
+            # Just a few top scores so user can see their score on the leaderboard
+            ("user1", "NeonMaster", 450, "walls"),
+            ("user16", "SnakeKing", 380, "pass-through"),
+            ("user2", "CyberSnake", 320, "walls"),
+            ("user15", "GridMaster", 280, "pass-through"),
+            ("user3", "PixelHunter", 240, "walls"),
         ]
         
         for idx, (user_id, username, score, mode) in enumerate(mock_leaderboard_data):

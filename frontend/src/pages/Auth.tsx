@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { mockAuth } from "@/services/mockBackend";
+import { authAPI } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 
 const Auth = () => {
@@ -22,7 +22,7 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { user, error } = await mockAuth.login(email, password);
+        const { user, error } = await authAPI.login(email, password);
         if (error) {
           toast({
             title: "Login Failed",
@@ -37,7 +37,7 @@ const Auth = () => {
           navigate("/");
         }
       } else {
-        const { user, error } = await mockAuth.signup(username, email, password);
+        const { user, error } = await authAPI.signup(username, email, password);
         if (error) {
           toast({
             title: "Signup Failed",
