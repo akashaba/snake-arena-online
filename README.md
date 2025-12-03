@@ -18,6 +18,7 @@ A multiplayer Snake game with neon cyberpunk aesthetics, featuring real-time lea
 - 📱 **Responsive Design** for desktop and mobile
 
 ## 🚀 Quick Start
+Render URL: https://snake-arena-app-atlk.onrender.com/
 
 ### Prerequisites
 
