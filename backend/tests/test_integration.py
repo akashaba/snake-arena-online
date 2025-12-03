@@ -5,7 +5,7 @@ import pytest
 class TestIntegration:
     """Integration tests for complete workflows"""
     
-    def test_complete_user_flow(self, client, reset_db):
+    def test_complete_user_flow(self, client):
         """Test complete user flow: signup, login, submit score, view profile"""
         # 1. Signup
         signup_response = client.post(
@@ -54,7 +54,7 @@ class TestIntegration:
         )
         assert logout_response.status_code == 200
     
-    def test_leaderboard_ranking(self, client, reset_db, auth_headers):
+    def test_leaderboard_ranking(self, client, auth_headers):
         """Test that leaderboard ranking works correctly"""
         # Submit multiple scores
         scores = [100, 300, 200, 500, 150]
@@ -80,7 +80,7 @@ class TestIntegration:
         # Verify scores are in descending order
         assert scores_list == sorted(scores_list, reverse=True)
     
-    def test_spectate_workflow(self, client, reset_db):
+    def test_spectate_workflow(self, client):
         """Test spectate workflow"""
         # 1. Get all active players
         players_response = client.get("/api/v1/spectate/players")

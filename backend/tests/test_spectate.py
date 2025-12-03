@@ -5,7 +5,7 @@ import pytest
 class TestSpectate:
     """Test spectate endpoints"""
     
-    def test_get_active_players(self, client, reset_db):
+    def test_get_active_players(self, client):
         """Test getting active players"""
         response = client.get("/api/v1/spectate/players")
         
@@ -24,7 +24,7 @@ class TestSpectate:
         assert "food" in player
         assert "is_game_over" in player
     
-    def test_get_active_players_with_mode_filter(self, client, reset_db):
+    def test_get_active_players_with_mode_filter(self, client):
         """Test getting active players filtered by mode"""
         response = client.get("/api/v1/spectate/players?mode=walls")
         
@@ -32,7 +32,7 @@ class TestSpectate:
         data = response.json()
         assert all(player["mode"] == "walls" for player in data)
     
-    def test_watch_player(self, client, reset_db):
+    def test_watch_player(self, client):
         """Test watching a specific player"""
         response = client.get("/api/v1/spectate/players/p1")
         
@@ -50,13 +50,13 @@ class TestSpectate:
             assert 0 <= position["x"] <= 19
             assert 0 <= position["y"] <= 19
     
-    def test_watch_nonexistent_player(self, client, reset_db):
+    def test_watch_nonexistent_player(self, client):
         """Test watching nonexistent player"""
         response = client.get("/api/v1/spectate/players/nonexistent")
         
         assert response.status_code == 404
     
-    def test_snake_structure(self, client, reset_db):
+    def test_snake_structure(self, client):
         """Test that snake data structure is correct"""
         response = client.get("/api/v1/spectate/players/p1")
         
