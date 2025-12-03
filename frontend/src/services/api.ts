@@ -164,7 +164,7 @@ export const authAPI = {
     } catch (error) {
       const apiError = error as ApiError;
       return {
-        user: null as any,
+        user: null as unknown as User,
         token: '',
         error: apiError.message || 'Login failed',
       };
@@ -189,7 +189,7 @@ export const authAPI = {
     } catch (error) {
       const apiError = error as ApiError;
       return {
-        user: null as any,
+        user: null as unknown as User,
         token: '',
         error: apiError.message || 'Signup failed',
       };

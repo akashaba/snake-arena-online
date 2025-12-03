@@ -48,7 +48,7 @@ export const mockAuth = {
 
     const userEntry = users.get(email);
     if (!userEntry || userEntry.password !== password) {
-      return { user: null as any, error: "Invalid credentials" };
+      return { user: null as unknown as User, error: "Invalid credentials" };
     }
 
     currentUser = userEntry.user;
@@ -60,7 +60,7 @@ export const mockAuth = {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     if (users.has(email)) {
-      return { user: null as any, error: "User already exists" };
+      return { user: null as unknown as User, error: "User already exists" };
     }
 
     const newUser: User = {
