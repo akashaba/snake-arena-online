@@ -32,8 +32,8 @@ jobs:
         working-directory: ./backend
         run: uv run pytest tests/ -v
         env:
-          DATABASE_URL: sqlite+aiosqlite:///:memory:
-          SECRET_KEY: test-secret-key-for-ci-pipeline-min-32-chars
+          DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+          SECRET_KEY: "test-secret-key-for-ci-pipeline-min-32-chars"
 
   # Job 2: Test Frontend
   test-frontend:
