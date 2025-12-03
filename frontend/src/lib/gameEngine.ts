@@ -38,7 +38,7 @@ export const generateFood = (snake: Position[]): Position => {
 };
 
 export const getNextHeadPosition = (head: Position, direction: Direction, mode: GameMode): Position => {
-  let newHead = { ...head };
+  const newHead = { ...head };
 
   switch (direction) {
     case "UP":
